@@ -15,5 +15,5 @@ fn main() {
     let args = Args::parse();
 
     println!("habitat is {}", args.env);
-    println!("pattern is {}", args.pattern);
+    println!("pattern is '{}'", args.pattern);
 }
