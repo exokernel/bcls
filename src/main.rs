@@ -8,13 +8,19 @@ struct Args {
     env: String,
 
     /// Long output. Show machine-type, cpu-platform, zone, cell, etc. info.
-    /// By default only instance-name and IP are shown
-    #[arg(short, long)]
+    /// By default only instance-name and IP are shown.
+    /// Can't be used with ip option
+    #[arg(short, long, conflicts_with = "ip")]
     long: bool,
+
+    /// Show IP only. Handy for pipeing to other commands like bolt.
+    /// Can't be used with long option
+    #[arg(short, long, conflicts_with = "long")]
+    ip: bool,
 
     /// Fields
 
-    /// Search pattern for instance names. E.g. "^store-lb"
+    /// Search pattern to match against instance names. E.g. "^store-lb"
     pattern: String,
 }
 
@@ -23,5 +29,6 @@ fn main() {
 
     println!("habitat is {}", args.env);
     println!("-l is {}", args.long);
+    println!("-i is {}", args.ip);
     println!("pattern is '{}'", args.pattern);
 }
