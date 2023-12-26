@@ -1,7 +1,6 @@
 use clap::Parser;
 use config::Config;
 use config::{File, FileFormat};
-use serde::Deserialize;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -27,18 +26,7 @@ struct Args {
     pattern: String,
 }
 
-#[derive(Debug, Deserialize)]
-struct Habitat {
-    project: String,
-    token: String,
-}
-
-#[derive(Debug, Deserialize)]
-struct Configurations {
-    int: Habitat,
-    stg: Habitat,
-    prd: Habitat,
-}
+mod bclsconfig;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
@@ -50,12 +38,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // get habitat and token from config file
     let builder = Config::builder()
-        .set_default("default", "1")?
+        //.set_default("default", "1")?
+        .add_source(File::with_name(".bcsl/config.toml").required(false))
         .add_source(File::new("config", FileFormat::Toml));
-
     let config = builder.build()?;
 
-    let config: Configurations = config.try_deserialize()?;
+    let config: bclsconfig::Configurations = config.try_deserialize()?;
 
     match args.env.as_str() {
         "int" => println!(
