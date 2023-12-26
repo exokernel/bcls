@@ -9,5 +9,8 @@ edition = "2021"
 clap = { version = "4.4.7", features = ["derive"] }
 config = "0.13.4"
 dirs = "5.0.1"
-reqwest = "0.11.23"
+reqwest = { version = "0.11.23", features = ["json"] }
 serde = "1.0.193"
+serde_json = "1.0.108"
+tokio = { version = "1.35.1", features = ["full"] }
+

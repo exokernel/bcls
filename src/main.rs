@@ -42,15 +42,16 @@ pub struct EnvArgs {
 mod bclsconfig;
 mod compute;
 
-fn printit(project: String, token: String, pattern: String, long: bool, ip: bool) {
+fn printit(project: &String, _token: &str, pattern: &String, long: bool, ip: bool) {
     println!("project: {:?}", project);
-    println!("token: {:?}", token);
+    //println!("token: {:?}", token);
     println!("pattern: {:?}", pattern);
     println!("long: {:?}", long);
     println!("ip: {:?}", ip);
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 
     let configpath = dirs::home_dir()
@@ -75,7 +76,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let long = args.long;
             let ip = args.ip;
 
-            printit(project, token, pattern, long, ip)
+            printit(&project, &token, &pattern, long, ip);
+            let c = compute::new_compute(project, token);
+            let zones = c.list_zones().await?;
+            println!("{:?}", zones);
             //compute::list_instances(token, project, pattern, long, ip)?;
         }
         Command::Stg(args) => {
@@ -85,7 +89,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let long = args.long;
             let ip = args.ip;
 
-            printit(project, token, pattern, long, ip);
+            printit(&project, &token, &pattern, long, ip);
             //compute::list_instances(token, project, pattern, long, ip)?;
         }
         Command::Prd(args) => {
@@ -95,7 +99,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let long = args.long;
             let ip = args.ip;
 
-            printit(project, token, pattern, long, ip);
+            printit(&project, &token, &pattern, long, ip);
             //compute::list_instances(token, project, pattern, long, ip)?;
         }
     }
