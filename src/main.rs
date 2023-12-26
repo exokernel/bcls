@@ -27,6 +27,7 @@ struct Args {
 }
 
 mod bclsconfig;
+mod compute;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
@@ -36,11 +37,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("-i is {}", args.ip);
     println!("pattern is '{}'", args.pattern);
 
+    let configpath = dirs::home_dir()
+        .expect("Homedir not found")
+        .join(".bcls/config.toml");
+
     // get habitat and token from config file
     let builder = Config::builder()
-        //.set_default("default", "1")?
-        .add_source(File::with_name(".bcsl/config.toml").required(false))
-        .add_source(File::new("config", FileFormat::Toml));
+        // read from config in .bcls/config.toml under home directory
+        // or from config in current directory
+        .add_source(File::from(configpath).required(false))
+        .add_source(File::new("config", FileFormat::Toml).required(false));
     let config = builder.build()?;
 
     let config: bclsconfig::Configurations = config.try_deserialize()?;
@@ -60,6 +66,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ),
         _ => println!("Invalid environment"),
     }
+
+    println!("done");
 
     Ok(())
 }

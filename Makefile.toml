@@ -11,9 +11,9 @@ args = ["fmt", "--", "--emit=files"]
 command = "cargo"
 args = ["clean"]
 
-[tasks.build]
-command = "cargo"
-args = ["build"]
+#[tasks.build]
+#command = "cargo"
+#args = ["build"]
 #dependencies = ["clean"]
 
 [tasks.test]
@@ -25,6 +25,6 @@ args = ["test"]
 dependencies = [
     "lint",
     "format",
-    "build",
+    "check",
     #"test"
 ]
