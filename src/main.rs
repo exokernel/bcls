@@ -77,9 +77,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             let ip = args.ip;
 
             printit(&project, &token, &pattern, long, ip);
-            let c = compute::new_compute(project, token);
-            let zones = c.list_zones().await?;
-            println!("{:?}", zones);
+            let c = compute::new_compute(project);
+            let instances = c.list_instances(&pattern).await?;
+
+            let mut instance_info = Vec::new();
+
+            if let Some(items) = instances["items"].as_object() {
+                for (zone, instances_value) in items {
+                    if let Some(instances_array) = instances_value["instances"].as_array() {
+                        for instance in instances_array {
+                            if let Some(name) = instance["name"].as_str() {
+                                instance_info.push((zone.clone(), name.to_string()));
+                            }
+                        }
+                    }
+                }
+            }
+
+            instance_info.sort_by(|a, b| a.0.cmp(&b.0).then_with(|| a.1.cmp(&b.1)));
+
+            for (zone, name) in &instance_info {
+                println!("Name: {} Zone: {}", name, zone);
+            }
             //compute::list_instances(token, project, pattern, long, ip)?;
         }
         Command::Stg(args) => {
