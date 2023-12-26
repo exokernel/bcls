@@ -1,4 +1,7 @@
 use clap::Parser;
+use config::Config;
+use config::{File, FileFormat};
+use serde::Deserialize;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -24,11 +27,51 @@ struct Args {
     pattern: String,
 }
 
-fn main() {
+#[derive(Debug, Deserialize)]
+struct Habitat {
+    project: String,
+    token: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct Configurations {
+    int: Habitat,
+    stg: Habitat,
+    prd: Habitat,
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 
     println!("habitat is {}", args.env);
     println!("-l is {}", args.long);
     println!("-i is {}", args.ip);
     println!("pattern is '{}'", args.pattern);
+
+    // get habitat and token from config file
+    let builder = Config::builder()
+        .set_default("default", "1")?
+        .add_source(File::new("config", FileFormat::Toml));
+
+    let config = builder.build()?;
+
+    let config: Configurations = config.try_deserialize()?;
+
+    match args.env.as_str() {
+        "int" => println!(
+            "Project: {}, Token: {}",
+            config.int.project, config.int.token
+        ),
+        "stg" => println!(
+            "Project: {}, Token: {}",
+            config.stg.project, config.stg.token
+        ),
+        "prd" => println!(
+            "Project: {}, Token: {}",
+            config.prd.project, config.prd.token
+        ),
+        _ => println!("Invalid environment"),
+    }
+
+    Ok(())
 }

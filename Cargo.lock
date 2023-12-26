@@ -127,6 +127,7 @@ dependencies = [
  "clap",
  "config",
  "reqwest",
+ "serde",
 ]
 
 [[package]]
