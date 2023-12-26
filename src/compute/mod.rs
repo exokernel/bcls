@@ -1,3 +1,6 @@
+mod records;
+pub use records::Instance;
+
 // This'll be a module for interacting with gcloud compute REST API
 use reqwest::Client;
 use serde_json::Value;
