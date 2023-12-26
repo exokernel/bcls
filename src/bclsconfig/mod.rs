@@ -2,13 +2,13 @@
 
 use serde::Deserialize;
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize)]
 pub struct Habitat {
     pub project: String,
     pub token: String,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize)]
 pub struct Configurations {
     pub int: Habitat,
     pub stg: Habitat,
