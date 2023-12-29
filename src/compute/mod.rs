@@ -1,4 +1,7 @@
-pub use self::{compute::{Compute, new_compute}, records::Instance};
+pub use self::{
+    compute::{new_compute, Compute},
+    records::Instance,
+};
 
-mod records;
 mod compute;
+mod records;

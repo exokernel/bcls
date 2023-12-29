@@ -1,6 +1,8 @@
 use clap::Parser;
 use config::Config;
 use config::{File, FileFormat};
+#[macro_use]
+extern crate prettytable;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about)]
@@ -99,29 +101,42 @@ async fn show_instances(
     let c = compute::new_compute(project.to_string());
     let instances = c.list_instances(pattern).await?;
 
+    //print_instances(instances);
     print_instances_table(instances);
 
     Ok(())
 }
 
-fn print_instances_table(response_json: serde_json::Value) {
-    let mut inst_list = Vec::new();
+//fn print_instances(instances: Vec<compute::Instance>) {
+//    // Print each instance as a string
+//    for inst in instances {
+//        println!("{}", inst.as_string());
+//    }
+//}
 
-    if let Some(items) = response_json["items"].as_object() {
-        for (zone, zone_data) in items {
-            if let Some(instances) = zone_data["instances"].as_array() {
-                for inst in instances {
-                    if let Some(name) = inst["name"].as_str() {
-                        inst_list.push((zone.clone(), name.to_string()));
-                    }
-                }
-            }
-        }
-    }
+fn print_instances_table(instances: Vec<compute::Instance>) {
+    // Print a header for each field of the Instance struct
+    // and then print each instance as a row in the table
+    let mut table = prettytable::Table::new();
+    table.add_row(row![
+        "Name",
+        "IP",
+        "Zone",
+        "Machine Type",
+        "CPU Platform",
+        "Status",
+        "Labels"
+    ]);
 
-    inst_list.sort_by(|a, b| a.0.cmp(&b.0).then_with(|| a.1.cmp(&b.1)));
-
-    for (zone, name) in &inst_list {
-        println!("Name: {} Zone: {}", name, zone);
+    for inst in instances {
+        table.add_row(row![
+            inst.name,
+            inst.ip,
+            inst.zone,
+            inst.machine_type,
+            inst.cpu_platform,
+            inst.status,
+            inst.labels
+        ]);
     }
 }
