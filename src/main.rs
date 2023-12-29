@@ -91,7 +91,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 async fn show_instances(
-    project: &String,
+    project: &str,
     pattern: &str,
     _long: bool,
     _ip: bool,
@@ -99,29 +99,29 @@ async fn show_instances(
     let c = compute::new_compute(project.to_string());
     let instances = c.list_instances(pattern).await?;
 
-    print_intances_table(instances);
+    print_instances_table(instances);
 
     Ok(())
 }
 
-fn print_intances_table(instances: serde_json::Value) {
-    let mut instance_info = Vec::new();
+fn print_instances_table(response_json: serde_json::Value) {
+    let mut inst_list = Vec::new();
 
-    if let Some(items) = instances["items"].as_object() {
-        for (zone, instances_value) in items {
-            if let Some(instances_array) = instances_value["instances"].as_array() {
-                for instance in instances_array {
-                    if let Some(name) = instance["name"].as_str() {
-                        instance_info.push((zone.clone(), name.to_string()));
+    if let Some(items) = response_json["items"].as_object() {
+        for (zone, zone_data) in items {
+            if let Some(instances) = zone_data["instances"].as_array() {
+                for inst in instances {
+                    if let Some(name) = inst["name"].as_str() {
+                        inst_list.push((zone.clone(), name.to_string()));
                     }
                 }
             }
         }
     }
 
-    instance_info.sort_by(|a, b| a.0.cmp(&b.0).then_with(|| a.1.cmp(&b.1)));
+    inst_list.sort_by(|a, b| a.0.cmp(&b.0).then_with(|| a.1.cmp(&b.1)));
 
-    for (zone, name) in &instance_info {
+    for (zone, name) in &inst_list {
         println!("Name: {} Zone: {}", name, zone);
     }
 }
