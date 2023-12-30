@@ -22,7 +22,7 @@ pub fn new_compute(project: String) -> Compute {
 
 impl Compute {
     #[allow(dead_code)]
-    pub async fn list_zones(&self) -> Result<Vec<String>, Box<dyn std::error::Error>> {
+    pub fn list_zones(&self) -> Result<Vec<String>, Box<dyn std::error::Error>> {
         let url = format!(
             "https://compute.googleapis.com/compute/v1/projects/{}/zones",
             self.project
