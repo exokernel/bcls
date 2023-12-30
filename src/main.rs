@@ -107,12 +107,13 @@ async fn show_instances(
     Ok(())
 }
 
-//fn print_instances(instances: Vec<compute::Instance>) {
-//    // Print each instance as a string
-//    for inst in instances {
-//        println!("{}", inst.as_string());
-//    }
-//}
+#[allow(dead_code)]
+fn print_instances(instances: Vec<compute::Instance>) {
+    // Print each instance as a string
+    for inst in instances {
+        println!("{}", inst.as_string());
+    }
+}
 
 fn print_instances_table(instances: Vec<compute::Instance>) {
     // Print a header for each field of the Instance struct
@@ -139,4 +140,6 @@ fn print_instances_table(instances: Vec<compute::Instance>) {
             inst.labels
         ]);
     }
+
+    table.printstd();
 }

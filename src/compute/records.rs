@@ -1,7 +1,7 @@
-use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
+use std::error::Error;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct Instance {
     pub name: String,
     pub ip: String,
@@ -13,18 +13,46 @@ pub struct Instance {
 }
 
 impl Instance {
-    pub fn from_json(json: JsonValue) -> Option<Instance> {
-        let name = json["name"].as_str()?.to_owned();
-        let ip = json["networkInterfaces"][0]["networkIP"]
-            .as_str()?
+    pub fn from_json(json: JsonValue) -> Result<Instance, Box<dyn Error>> {
+        let name = json
+            .get("name")
+            .and_then(JsonValue::as_str)
+            .ok_or("No name")?
+            .to_string();
+        let ip = json
+            .get("networkInterfaces")
+            .and_then(JsonValue::as_array)
+            .ok_or("No networkInterfaces")?[0]
+            .get("networkIP")
+            .and_then(JsonValue::as_str)
+            .ok_or("No networkIP")?
+            .to_string();
+        let zone = json
+            .get("zone")
+            .and_then(JsonValue::as_str)
+            .ok_or("No zone")?
+            .to_string();
+        let machine_type = json
+            .get("machineType")
+            .and_then(JsonValue::as_str)
+            .ok_or("No machineType")?
+            .to_string();
+        let cpu_platform = json
+            .get("cpuPlatform")
+            .and_then(JsonValue::as_str)
+            .ok_or("No cpuPlatform")?
+            .to_string();
+        let status = json
+            .get("status")
+            .and_then(JsonValue::as_str)
+            .ok_or("No status")?
+            .to_string();
+        let labels = json
+            .get("labels")
+            .and_then(JsonValue::as_str)
+            .ok_or("No labels")?
             .to_owned();
-        let zone = json["zone"].as_str()?.to_owned();
-        let machine_type = json["machineType"].as_str()?.to_owned();
-        let cpu_platform = json["cpuPlatform"].as_str()?.to_owned();
-        let status = json["status"].as_str()?.to_owned();
-        let labels = json["labels"].to_string();
-
-        Some(Instance {
+        Ok(Instance {
             name,
             ip,
             zone,

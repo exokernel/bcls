@@ -81,7 +81,7 @@ impl Compute {
                     .unwrap()
                     .iter()
                     .map(|inst| records::Instance::from_json(inst.clone()))
-                    .collect::<Vec<Option<records::Instance>>>()
+                    .collect::<Vec<Result<records::Instance, Box<dyn std::error::Error>>>>()
             })
             .flatten()
             .collect::<Vec<records::Instance>>();
