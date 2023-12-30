@@ -44,8 +44,7 @@ pub struct EnvArgs {
 mod bclsconfig;
 mod compute;
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 
     let configpath = dirs::home_dir()
@@ -63,48 +62,37 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config: bclsconfig::Configurations = config.try_deserialize()?;
 
     match args.cmd {
-        Command::Int(args) => {
-            let project = config.int.project;
-            let pattern = args.pattern;
-            let long = args.long;
-            let ip = args.ip;
-
-            show_instances(&project, &pattern, long, ip).await?;
-        }
-        Command::Stg(args) => {
-            let project = config.stg.project;
-            let pattern = args.pattern;
-            let long = args.long;
-            let ip = args.ip;
-
-            show_instances(&project, &pattern, long, ip).await?;
-        }
-        Command::Prd(args) => {
-            let project = config.prd.project;
-            let pattern = args.pattern;
-            let long = args.long;
-            let ip = args.ip;
-
-            show_instances(&project, &pattern, long, ip).await?;
-        }
+        Command::Int(args) => handle_command(args, &config.int.project)?,
+        Command::Stg(args) => handle_command(args, &config.stg.project)?,
+        Command::Prd(args) => handle_command(args, &config.prd.project)?,
     }
 
     Ok(())
 }
 
-async fn show_instances(
+fn handle_command(args: EnvArgs, project: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let pattern = args.pattern;
+    let long = args.long;
+    let ip = args.ip;
+
+    show_instances(project, &pattern, long, ip)
+}
+
+fn show_instances(
     project: &str,
     pattern: &str,
     _long: bool,
     _ip: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let c = compute::new_compute(project.to_string());
-    let instances = c.list_instances(pattern).await?;
-
-    //print_instances(instances);
-    print_instances_table(instances);
-
-    Ok(())
+    let instances = c.list_instances(pattern);
+    match instances {
+        Ok(instances) => {
+            print_instances_table(instances);
+            Ok(())
+        }
+        Err(e) => Err(format!("Failed to list instances: {:?}", e).into()),
+    }
 }
 
 #[allow(dead_code)]

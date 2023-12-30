@@ -3,13 +3,13 @@
 // This'll be a module for interacting with gcloud compute REST API
 // https://cloud.google.com/compute/docs/reference/rest/v1/instances/list
 use super::records;
-use reqwest::Client as ReqwestClient;
+use reqwest::blocking::Client as ReqwestClient;
 use serde_json::Value as JsonValue;
 
 // A struct for our compute app service
 pub struct Compute {
     pub project: String,
-    client: reqwest::Client,
+    client: ReqwestClient,
 }
 
 // A builder function for our compute app service
@@ -33,12 +33,10 @@ impl Compute {
         println!("url: {:?}", url);
         let resp = self
             .client
-            .get(&url)
-            .bearer_auth(&token)
-            .send()
-            .await?
-            .json::<JsonValue>()
-            .await?;
+            .get(url)
+            .bearer_auth(token)
+            .send()?
+            .json::<JsonValue>()?;
         let zones = resp["items"]
             .as_array()
             .ok_or("No items in response")?
@@ -49,7 +47,7 @@ impl Compute {
         Ok(zones)
     }
 
-    pub async fn list_instances(
+    pub fn list_instances(
         &self,
         instance_name: &str,
     ) -> Result<Vec<records::Instance>, Box<dyn std::error::Error>> {
@@ -63,12 +61,10 @@ impl Compute {
 
         let resp = self
             .client
-            .get(&url)
-            .bearer_auth(&token)
-            .send()
-            .await?
-            .json::<JsonValue>()
-            .await?;
+            .get(url)
+            .bearer_auth(token)
+            .send()?
+            .json::<JsonValue>()?;
 
         // Get the instances from the JSON response and convert them to a Vec<Instance>
         let instances = resp["items"]
