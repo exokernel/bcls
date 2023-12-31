@@ -21,7 +21,7 @@ command = "cargo"
 args = ["test"]
 #dependencies = ["clean"]
 
-[tasks.check-build]
+[tasks.check-all]
 dependencies = [
     "lint",
     "format",
