@@ -26,5 +26,5 @@ dependencies = [
     "lint",
     "format",
     "check",
-    #"test"
+    "test"
 ]
