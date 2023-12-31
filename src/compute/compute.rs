@@ -12,15 +12,15 @@ pub struct Compute {
     client: ReqwestClient,
 }
 
-// A builder function for our compute app service
-pub fn new_compute(project: String) -> Compute {
-    Compute {
-        project,
-        client: ReqwestClient::new(),
-    }
-}
-
 impl Compute {
+    // A builder function for our compute app service
+    pub fn new(project: String) -> Compute {
+        Compute {
+            project,
+            client: ReqwestClient::new(),
+        }
+    }
+
     #[allow(dead_code)]
     pub fn list_zones(&self) -> Result<Vec<String>, Box<dyn std::error::Error>> {
         let url = format!(
