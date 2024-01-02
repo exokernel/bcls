@@ -85,8 +85,7 @@ fn show_instances(
     _long: bool,
     _ip: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let token = compute::get_token(project)?;
-    let c = compute::Compute::new(project.to_string(), http::Http::new(token));
+    let c = compute::Compute::new(project.to_string(), http::Http::new());
     let instances = c.list_instances(pattern);
     match instances {
         Ok(instances) => {

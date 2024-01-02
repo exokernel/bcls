@@ -8,7 +8,7 @@ use crate::http;
 // A struct for our compute app service
 // It has a client field that conforms to the HttpTrait
 pub struct Compute<T: http::HttpTrait> {
-    pub project: String,
+    project: String,
     client: T,
 }
 
@@ -26,7 +26,8 @@ impl<T: http::HttpTrait> Compute<T> {
         );
 
         println!("url: {:?}", url);
-        let resp = self.client.get(&url)?;
+        let token = get_token(&self.project)?;
+        let resp = self.client.get(&token, &url)?;
         let zones = resp["items"]
             .as_array()
             .ok_or("No items in response")?
@@ -48,7 +49,8 @@ impl<T: http::HttpTrait> Compute<T> {
             self.project, encoded_filter
         );
 
-        let resp = self.client.get(&url)?;
+        let token = get_token(&self.project)?;
+        let resp = self.client.get(&token, &url)?;
 
         // Get the instances from the JSON response and convert them to a Vec<Instance>
         let instances = resp["items"]
@@ -74,7 +76,7 @@ impl<T: http::HttpTrait> Compute<T> {
 
 // Run `gcloud auth application-default print-access-token --project=PROJECT` for the given project
 // and return the token
-pub fn get_token(project: &str) -> Result<String, Box<dyn std::error::Error>> {
+fn get_token(project: &str) -> Result<String, Box<dyn std::error::Error>> {
     println!("fetching token for project: {:?}", project);
     let output = std::process::Command::new("gcloud")
         .args([

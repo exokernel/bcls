@@ -1,4 +1,4 @@
-pub use self::{compute::get_token, compute::Compute, records::Instance};
+pub use self::{compute::Compute, records::Instance};
 
 mod compute;
 mod records;
