@@ -43,6 +43,7 @@ pub struct EnvArgs {
 
 mod bclsconfig;
 mod compute;
+mod http;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
@@ -84,7 +85,8 @@ fn show_instances(
     _long: bool,
     _ip: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let c = compute::Compute::new(project.to_string());
+    let token = compute::get_token(project)?;
+    let c = compute::Compute::new(project.to_string(), http::Http::new(token));
     let instances = c.list_instances(pattern);
     match instances {
         Ok(instances) => {

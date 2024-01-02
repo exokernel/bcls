@@ -3,22 +3,19 @@
 // This'll be a module for interacting with gcloud compute REST API
 // https://cloud.google.com/compute/docs/reference/rest/v1/instances/list
 use super::records;
-use reqwest::blocking::Client as ReqwestClient;
-use serde_json::Value as JsonValue;
+use crate::http;
 
 // A struct for our compute app service
-pub struct Compute {
+// It has a client field that conforms to the HttpTrait
+pub struct Compute<T: http::HttpTrait> {
     pub project: String,
-    client: ReqwestClient,
+    client: T,
 }
 
-impl Compute {
+impl<T: http::HttpTrait> Compute<T> {
     // A builder function for our compute app service
-    pub fn new(project: String) -> Compute {
-        Compute {
-            project,
-            client: ReqwestClient::new(),
-        }
+    pub fn new(project: String, client: T) -> Compute<T> {
+        Compute { project, client }
     }
 
     #[allow(dead_code)]
@@ -28,15 +25,8 @@ impl Compute {
             self.project
         );
 
-        let token = get_token(&self.project)?;
-
         println!("url: {:?}", url);
-        let resp = self
-            .client
-            .get(url)
-            .bearer_auth(token)
-            .send()?
-            .json::<JsonValue>()?;
+        let resp = self.client.get(&url)?;
         let zones = resp["items"]
             .as_array()
             .ok_or("No items in response")?
@@ -57,14 +47,8 @@ impl Compute {
             "https://compute.googleapis.com/compute/v1/projects/{}/aggregated/instances?filter={}",
             self.project, encoded_filter
         );
-        let token = get_token(&self.project)?;
 
-        let resp = self
-            .client
-            .get(url)
-            .bearer_auth(token)
-            .send()?
-            .json::<JsonValue>()?;
+        let resp = self.client.get(&url)?;
 
         // Get the instances from the JSON response and convert them to a Vec<Instance>
         let instances = resp["items"]
@@ -90,7 +74,7 @@ impl Compute {
 
 // Run `gcloud auth application-default print-access-token --project=PROJECT` for the given project
 // and return the token
-fn get_token(project: &str) -> Result<String, Box<dyn std::error::Error>> {
+pub fn get_token(project: &str) -> Result<String, Box<dyn std::error::Error>> {
     println!("fetching token for project: {:?}", project);
     let output = std::process::Command::new("gcloud")
         .args([
