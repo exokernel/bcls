@@ -6,6 +6,7 @@ use reqwest::blocking::Client as ReqwestClient;
 use serde_json::Value as JsonValue;
 
 // Trait for our http app service
+#[cfg_attr(test, mockall::automock)]
 pub trait HttpTrait {
     fn get(&self, token: &str, url: &str) -> Result<JsonValue, Box<dyn std::error::Error>>;
 }

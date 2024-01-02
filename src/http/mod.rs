@@ -1,3 +1,3 @@
 pub use self::http::{Http, HttpTrait};
 
-mod http;
+pub mod http;

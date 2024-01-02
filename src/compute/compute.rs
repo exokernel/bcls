@@ -32,7 +32,7 @@ impl<T: http::HttpTrait> Compute<T> {
             .as_array()
             .ok_or("No items in response")?
             .iter()
-            .map(|x| x["name"].as_str().unwrap().to_string())
+            .map(|item| item["name"].as_str().unwrap().to_string())
             .collect::<Vec<String>>();
 
         Ok(zones)
@@ -89,4 +89,37 @@ fn get_token(project: &str) -> Result<String, Box<dyn std::error::Error>> {
         .output()?;
     let token = String::from_utf8(output.stdout)?.trim().to_string();
     Ok(token)
+}
+
+// Tests
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+    use mockall::*;
+    use serde_json::json;
+    use crate::http::http::MockHttpTrait;
+
+    #[test]
+    fn test_list_zones() {
+        let mut mock_http = MockHttpTrait::new();
+
+
+        // Set up expectations
+        let expected_token = "test_token";
+        let expected_url = "http://example.com";
+        let expected_result = vec!["zone1".to_string(), "zone2".to_string()];
+        mock_http.expect_get()
+            .with(predicate::eq(expected_token), predicate::eq(expected_url))
+            .return_once(move |_, _| Ok(json!({"items": [{"name": "zone1"}, {"name": "zone2"}]})));
+
+        // Create a Compute instance with the mock HttpTrait
+        let c = Compute::new("test_project".to_string(), mock_http);
+        let result = c.list_zones();
+        let result = result.unwrap();
+
+        // Assert that the function returned the expected result
+        assert_eq!(result, expected_result);
+    }
 }
