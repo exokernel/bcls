@@ -105,6 +105,7 @@ fn get_token(project: &str) -> Result<String, Box<dyn std::error::Error>> {
 mod tests {
 
     use super::*;
+    use mockall::predicate;
     use crate::http::http::MockHttpTrait;
     use serde_json::json;
 
@@ -113,9 +114,12 @@ mod tests {
         let mut mock_http = MockHttpTrait::new();
 
         // Set up expectations
+        let expected_token = "mock_token".to_string();
         let expected_result = vec!["zone1".to_string(), "zone2".to_string()];
         mock_http
-            .expect_get()
+            .expect_get().with(
+                predicate::eq(expected_token),
+                predicate::eq("https://compute.googleapis.com/compute/v1/projects/test-project/zones"))
             .return_once(move |_, _| Ok(json!({"items": [{"name": "zone1"}, {"name": "zone2"}]})));
 
         // Create a Compute instance with the mock HttpTrait
