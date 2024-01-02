@@ -134,4 +134,75 @@ mod tests {
         // Assert that the function returned the expected result
         assert_eq!(result, expected_result);
     }
+
+    #[test]
+    fn test_list_instances() {
+        let mut mock_http = MockHttpTrait::new();
+
+        // Set up expectations
+        mock_http.expect_get().return_once(move |_, _| {
+            Ok(json!({
+                "items": {
+                    "zone1": {
+                        "instances": [
+                            {
+                                "name": "instance1",
+                                "networkInterfaces": [
+                                    {
+                                        "networkIP": "127.0.0.1",
+                                    },
+                                ],
+                                "zone": "zone1",
+                                "machineType": "machine-type1",
+                                "cpuPlatform": "cpu-platform1",
+                                "status": "status1",
+                                "labels": "labels1",
+                            },
+                            {
+                                "name": "instance2",
+                                "networkInterfaces": [
+                                    {
+                                        "networkIP": "127.0.0.2",
+                                    },
+                                ],
+                                "zone": "zone1",
+                                "machineType": "machine-type2",
+                                "cpuPlatform": "cpu-platform2",
+                                "status": "status2",
+                                "labels": "labels2",
+                            },
+                        ],
+                    },
+                    "zone2": {
+                        "instances": [
+                            {
+                                "name": "instance3",
+                                "networkInterfaces": [
+                                    {
+                                        "networkIP": "127.0.0.3",
+                                    },
+                                ],
+                                "zone": "zone2",
+                                "machineType": "machine-type3",
+                                "cpuPlatform": "cpu-platform3",
+                                "status": "status3",
+                                "labels": "labels3",
+                            },
+                        ],
+                    },
+                },
+            }))
+        });
+
+        // Create a Compute instance with the mock HttpTrait
+        let c = Compute::new("test-project".to_string(), mock_http);
+        let result = c.list_instances("instance");
+        let result = result.unwrap();
+
+        // Assert that the function returned the expected result
+        assert_eq!(result.len(), 3);
+        assert_eq!(result[0].name, "instance1");
+        assert_eq!(result[1].name, "instance2");
+        assert_eq!(result[2].name, "instance3");
+    }
 }
