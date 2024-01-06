@@ -89,8 +89,14 @@ fn get_token(project: &str) -> Result<String, Box<dyn std::error::Error>> {
             project,
         ])
         .output()?;
-    let token = String::from_utf8(output.stdout)?.trim().to_string();
-    Ok(token)
+
+    if output.status.success() {
+        let token = String::from_utf8(output.stdout)?.trim().to_string();
+        Ok(token)
+    } else {
+        let err = String::from_utf8(output.stderr)?;
+        Err(err.into())
+    }
 }
 
 #[cfg(test)]
