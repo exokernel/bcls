@@ -58,12 +58,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let config: bcls::config::FileConfig = config.try_deserialize()?;
 
+    run(args, config)
+}
+
+fn run(args: Args, config: bcls::config::FileConfig) -> Result<(), Box<dyn std::error::Error>> {
     match args.cmd {
         Command::Int(args) => handle_command(args, &config.int.project)?,
         Command::Stg(args) => handle_command(args, &config.stg.project)?,
         Command::Prd(args) => handle_command(args, &config.prd.project)?,
     }
-
     Ok(())
 }
 
