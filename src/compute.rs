@@ -15,8 +15,8 @@ pub struct Compute<T: http::HttpTrait> {
 
 impl<T: http::HttpTrait> Compute<T> {
     // A builder function for our compute app service
-    pub fn new(project: String, client: T) -> Compute<T> {
-        Compute { project, client }
+    pub fn new(project: String, client: T) -> Self {
+        Self { project, client }
     }
 
     #[allow(dead_code)]
