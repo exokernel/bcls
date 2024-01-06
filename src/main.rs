@@ -1,8 +1,8 @@
-use clap::Parser;
-use config::Config;
-use config::{File, FileFormat};
 #[macro_use]
 extern crate prettytable;
+
+use clap::Parser;
+use config::{Config, File, FileFormat};
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about)]
@@ -41,10 +41,6 @@ pub struct EnvArgs {
     pattern: String,
 }
 
-mod bclsconfig;
-mod compute;
-mod http;
-
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 
@@ -60,7 +56,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .add_source(File::new("config", FileFormat::Toml).required(false));
     let config = builder.build()?;
 
-    let config: bclsconfig::Configurations = config.try_deserialize()?;
+    let config: bcls::config::FileConfig = config.try_deserialize()?;
 
     match args.cmd {
         Command::Int(args) => handle_command(args, &config.int.project)?,
@@ -85,7 +81,7 @@ fn show_instances(
     _long: bool,
     _ip: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let c = compute::Compute::new(project.to_string(), http::Http::new());
+    let c = bcls::compute::Compute::new(project.to_string(), bcls::http::Http::default());
     let instances = c.list_instances(pattern);
     match instances {
         Ok(instances) => {
@@ -97,14 +93,14 @@ fn show_instances(
 }
 
 #[allow(dead_code)]
-fn print_instances(instances: Vec<compute::Instance>) {
+fn print_instances(instances: Vec<bcls::compute::Instance>) {
     // Print each instance as a string
     for inst in instances {
         println!("{}", inst.as_string());
     }
 }
 
-fn print_instances_table(instances: Vec<compute::Instance>) {
+fn print_instances_table(instances: Vec<bcls::compute::Instance>) {
     // Print a header for each field of the Instance struct
     // and then print each instance as a row in the table
     let mut table = prettytable::Table::new();

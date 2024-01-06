@@ -16,9 +16,15 @@ pub struct Http {
     client: ReqwestClient,
 }
 
+impl Default for Http {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Http {
     // A builder function for our compute app service
-    pub fn new() -> Http {
+    pub fn new() -> Self {
         Http {
             client: ReqwestClient::new(),
         }

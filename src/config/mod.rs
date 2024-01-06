@@ -9,7 +9,7 @@ pub struct Habitat {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct Configurations {
+pub struct FileConfig {
     pub int: Habitat,
     pub stg: Habitat,
     pub prd: Habitat,
