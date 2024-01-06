@@ -103,9 +103,8 @@ fn get_token(project: &str) -> Result<String, Box<dyn std::error::Error>> {
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
-    use crate::http::http::MockHttpTrait;
+    use crate::http::MockHttpTrait;
     use mockall::predicate;
     use serde_json::json;
 
