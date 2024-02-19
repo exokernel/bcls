@@ -6,11 +6,12 @@ mod records;
 use std::vec;
 
 use crate::http;
-pub use records::Instance;
-use serde_json::{Map, Value}; // rexport the Instance struct
+use serde_json::{Map, Value};
 
-// A struct for our compute app service
-// It has a client field that conforms to the HttpTrait
+pub use records::Instance;
+
+/// A struct for our compute app service
+/// It has a client field that conforms to the HttpTrait
 pub struct Compute<T: http::HttpTrait> {
     project: String,
     client: T,
@@ -42,6 +43,7 @@ impl<T: http::HttpTrait> Compute<T> {
         Ok(zones)
     }
 
+    /// Calls the gcloud compute API and returns a Result containing a vector of instances or an error
     pub fn list_instances(
         &self,
         instance_name: &str,
@@ -106,8 +108,8 @@ fn object_to_instance_list(
     instances
 }
 
-// Run `gcloud auth application-default print-access-token --project=PROJECT` for the given project
-// and return the token
+/// Run `gcloud auth application-default print-access-token --project=PROJECT` for the given project
+/// and return the token
 #[cfg(any(not(test), rust_analyzer))]
 fn get_token(project: &str) -> Result<String, Box<dyn std::error::Error>> {
     println!("fetching token for project: {:?}", project);
