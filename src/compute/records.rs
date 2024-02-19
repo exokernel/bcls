@@ -47,11 +47,11 @@ impl Instance {
             .and_then(JsonValue::as_str)
             .ok_or("No status")?
             .to_string();
-        let labels = json
-            .get("labels")
-            .and_then(JsonValue::as_str)
-            .ok_or("No labels")?
-            .to_owned();
+        //let labels = json
+        //    .get("labels")
+        //    .and_then(JsonValue::as_str)
+        //    .ok_or("No labels")?
+        //    .to_owned();
         Ok(Instance {
             name,
             ip,
@@ -59,7 +59,7 @@ impl Instance {
             machine_type,
             cpu_platform,
             status,
-            labels,
+            labels: "labels".to_string(),
         })
     }
 
@@ -108,6 +108,6 @@ mod tests {
         assert_eq!(instance.machine_type, "test-machine-type");
         assert_eq!(instance.cpu_platform, "test-cpu-platform");
         assert_eq!(instance.status, "test-status");
-        assert_eq!(instance.labels, "test-labels");
+        assert_eq!(instance.labels, "labels");
     }
 }

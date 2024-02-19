@@ -3,6 +3,7 @@ extern crate prettytable;
 
 use clap::Parser;
 use config::{Config, File, FileFormat};
+use prettytable::format;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about)]
@@ -89,6 +90,7 @@ fn show_instances(
     match instances {
         Ok(instances) => {
             print_instances_table(instances);
+            //print_instances(instances);
             Ok(())
         }
         Err(e) => Err(format!("Failed to list instances: {:?}", e).into()),
@@ -103,10 +105,21 @@ fn print_instances(instances: Vec<bcls::compute::Instance>) {
     }
 }
 
+#[allow(dead_code)]
 fn print_instances_table(instances: Vec<bcls::compute::Instance>) {
     // Print a header for each field of the Instance struct
     // and then print each instance as a row in the table
     let mut table = prettytable::Table::new();
+    table.set_format(
+        format::FormatBuilder::new()
+            .borders(' ')
+            .separators(
+                &[prettytable::format::LinePosition::Top],
+                prettytable::format::LineSeparator::new(' ', ' ', ' ', ' '),
+            )
+            .padding(1, 1)
+            .build(),
+    );
     table.add_row(row![
         "Name",
         "IP",

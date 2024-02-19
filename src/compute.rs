@@ -3,8 +3,11 @@ mod records;
 // This'll be a module for interacting with gcloud compute REST API
 // https://cloud.google.com/compute/docs/reference/rest/v1/instances/list
 
+use std::vec;
+
 use crate::http;
-pub use records::Instance; // rexport the Instance struct
+pub use records::Instance;
+use serde_json::{Map, Value}; // rexport the Instance struct
 
 // A struct for our compute app service
 // It has a client field that conforms to the HttpTrait
@@ -52,28 +55,56 @@ impl<T: http::HttpTrait> Compute<T> {
 
         let token = get_token(&self.project)?;
         let resp = self.client.get(&token, &url)?;
+        let stuff = resp["items"].as_object().ok_or("No items in response")?;
 
-        // Get the instances from the JSON response and convert them to a Vec<Instance>
-        let instances = resp["items"]
-            .as_object()
-            .ok_or("No items in response")?
-            .iter()
-            .flat_map(|(_, zone_data)| {
-                zone_data["instances"]
-                    .as_array()
-                    .unwrap()
-                    .iter()
-                    .map(|inst| records::Instance::from_json(inst.clone()))
-                    .collect::<Vec<Result<records::Instance, Box<dyn std::error::Error>>>>()
-            })
-            .flatten()
-            .collect::<Vec<records::Instance>>();
+        let mut error = false;
+        let mut instance_list = vec![];
+        for (zone, value) in stuff.iter() {
+            let object: &Map<String, Value> = value.as_object().unwrap();
+            let instance_result_list = object_to_instance_list(zone, object);
+            for result in instance_result_list {
+                match result {
+                    Ok(instance) => {
+                        instance_list.push(instance);
+                    }
+                    Err(e) => {
+                        println!("error: {:?}", e);
+                        error = true;
+                    }
+                };
+            }
+        }
 
-        Ok(instances)
+        match error {
+            true => {
+                let err: Box<dyn std::error::Error> = From::from("error parsing instances");
+                Err(err)
+            }
+            false => Ok(instance_list),
+        }
     }
 }
 
 // Helper functions
+
+fn object_to_instance_list(
+    zone: &String,
+    object: &Map<String, Value>,
+) -> Vec<Result<records::Instance, Box<dyn std::error::Error>>> {
+    let mut instances = vec![];
+    for (key, value) in object.iter() {
+        if key != "instances" {
+            continue;
+        }
+        let instance_list = value.as_array().unwrap();
+        println!("zone: {:?}", zone);
+        for instance in instance_list {
+            let result = records::Instance::from_json(instance.clone());
+            instances.push(result);
+        }
+    }
+    instances
+}
 
 // Run `gcloud auth application-default print-access-token --project=PROJECT` for the given project
 // and return the token
