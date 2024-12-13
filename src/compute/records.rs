@@ -12,8 +12,10 @@ pub struct Instance {
     pub labels: String,
 }
 
-impl Instance {
-    pub fn from_json(json: JsonValue) -> Result<Instance, Box<dyn Error>> {
+impl TryFrom<JsonValue> for Instance {
+    type Error = Box<dyn Error>;
+
+    fn try_from(json: JsonValue) -> Result<Self, Self::Error> {
         let name = json
             .get("name")
             .and_then(JsonValue::as_str)
@@ -62,7 +64,9 @@ impl Instance {
             labels: "labels".to_string(),
         })
     }
+}
 
+impl Instance {
     #[allow(dead_code)]
     pub fn as_string(&self) -> String {
         format!(
@@ -101,7 +105,7 @@ mod tests {
             "labels": "test-labels"
         });
 
-        let instance = Instance::from_json(json).unwrap();
+        let instance = Instance::try_from(json).unwrap();
         assert_eq!(instance.name, "test-instance");
         assert_eq!(instance.ip, "127.0.0.1");
         assert_eq!(instance.zone, "test-zone");

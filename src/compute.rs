@@ -101,7 +101,7 @@ fn object_to_instance_list(
         let instance_list = value.as_array().unwrap();
         println!("zone: {:?}", zone);
         for instance in instance_list {
-            let result = records::Instance::from_json(instance.clone());
+            let result = records::Instance::try_from(instance.clone());
             instances.push(result);
         }
     }
@@ -110,7 +110,7 @@ fn object_to_instance_list(
 
 /// Run `gcloud auth application-default print-access-token --project=PROJECT` for the given project
 /// and return the token
-#[cfg(any(not(test), rust_analyzer))]
+#[cfg(any(not(test), feature = "rust-analyzer"))]
 fn get_token(project: &str) -> Result<String, Box<dyn std::error::Error>> {
     println!("fetching token for project: {:?}", project);
     let output = std::process::Command::new("gcloud")
