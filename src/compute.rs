@@ -1,7 +1,7 @@
-mod records;
+//! This module provides an interface for interacting with the Google Compute Engine API.
+//! It defines the `Compute` struct for making API calls and related helper functions.
 
-// This'll be a module for interacting with gcloud compute REST API
-// https://cloud.google.com/compute/docs/reference/rest/v1/instances/list
+mod records;
 
 use std::vec;
 
@@ -10,15 +10,36 @@ use serde_json::{Map, Value};
 
 pub use records::Instance;
 
-/// A trait for fetching the token
+/// A trait for fetching authentication tokens.
 pub trait TokenSource {
+    /// Retrieves an authentication token.
+    ///
+    /// # Arguments
+    ///
+    /// * `project` - The ID of the Google Cloud project.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(String)` - The authentication token on success.
+    /// * `Err(Box<dyn std::error::Error>)` - An error if token retrieval fails.
     fn get_token(&self, project: &str) -> Result<String, Box<dyn std::error::Error>>;
 }
 
-/// A struct for fetching the token from gcloud
+/// Retrieves authentication tokens using the `gcloud` command-line tool.
 pub struct GcloudTokenSource;
 
 impl TokenSource for GcloudTokenSource {
+    /// Executes the `gcloud` command to obtain an access token.
+    ///
+    /// # Arguments
+    ///
+    /// * `project` - The Google Cloud project ID.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(String)` - The access token on success.
+    /// * `Err(Box<dyn std::error::Error>)` - An error if the `gcloud` command fails
+    ///   or if there's an issue processing the output.
     fn get_token(&self, project: &str) -> Result<String, Box<dyn std::error::Error>> {
         println!("fetching token for project: {:?}", project);
         let output = std::process::Command::new("gcloud")
@@ -41,36 +62,58 @@ impl TokenSource for GcloudTokenSource {
     }
 }
 
-// Mock token source for testing
+/// A mock token source for testing purposes.
 pub struct MockTokenSource {
+    /// The mock token to return.
     mock_token: String,
 }
 
 impl TokenSource for MockTokenSource {
+    /// Returns the configured mock token.
+    ///
+    /// # Arguments
+    ///
+    /// * `_project` - The project ID (ignored in this mock implementation).
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(String)` - The mock token.
     fn get_token(&self, _project: &str) -> Result<String, Box<dyn std::error::Error>> {
         Ok(self.mock_token.clone())
     }
 }
 
-/// Configuration for our compute app service
+/// Configuration for the `Compute` service.
 pub struct ComputeConfig<H: http::HttpTrait, T: TokenSource> {
+    /// The Google Cloud project ID.
     pub project: String,
+    /// The HTTP client implementation.
     pub client: H,
+    /// The token source.
     pub token_source: T,
 }
 
-/// A struct for our compute app service
-/// It has a client field that conforms to the HttpTrait
+/// Provides an interface for interacting with the Google Compute Engine API.
 pub struct Compute<H: http::HttpTrait, T: TokenSource> {
+    /// The configuration for the `Compute` service.
     config: ComputeConfig<H, T>,
 }
 
 impl<H: http::HttpTrait, T: TokenSource> Compute<H, T> {
-    // A builder function for our compute app service
+    /// Creates a new `Compute` instance.
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - The configuration for the `Compute` service.
+    ///
+    /// # Returns
+    ///
+    /// * `Self` - A new `Compute` instance.
     pub fn new(config: ComputeConfig<H, T>) -> Self {
         Self { config }
     }
 
+    /// Lists available zones in the project (currently unused).
     #[allow(dead_code)]
     pub fn list_zones(&self) -> Result<Vec<String>, Box<dyn std::error::Error>> {
         let url = format!(
@@ -91,7 +134,17 @@ impl<H: http::HttpTrait, T: TokenSource> Compute<H, T> {
         Ok(zones)
     }
 
-    /// Calls the gcloud compute API and returns a Result containing a vector of instances or an error
+    /// Lists instances in the specified project, filtered by name.
+    ///
+    /// # Arguments
+    ///
+    /// * `instance_name` - A regular expression pattern to match against instance names.
+    ///
+    /// # Returns
+    ///
+    /// * `Ok(Vec<Instance>)` - A vector of `Instance` structs representing the matching instances.
+    /// * `Err(Box<dyn std::error::Error>)` - An error if the API call fails or if there's an
+    ///   issue parsing the response.
     pub fn list_instances(
         &self,
         instance_name: &str,
@@ -126,17 +179,28 @@ impl<H: http::HttpTrait, T: TokenSource> Compute<H, T> {
         }
 
         match error {
-            true => {
-                let err: Box<dyn std::error::Error> = From::from("error parsing instances");
-                Err(err)
-            }
+            true => Err("Error parsing instances".into()), // More concise error message
             false => Ok(instance_list),
         }
     }
 }
 
-// Helper functions
-
+/// Converts a JSON object representing a group of instances within a zone
+/// into a vector of `Result<Instance, Box<dyn std::error::Error>>`.
+///
+/// This function takes a JSON object, extracts the "instances" array if present,
+/// and attempts to convert each element of the array into an `Instance` struct.
+/// Any errors encountered during the conversion are returned as part of the vector.
+///
+/// # Arguments
+///
+/// * `object` - The JSON object representing a group of instances within a zone.
+///
+/// # Returns
+///
+/// A vector of `Result<Instance, Box<dyn std::error::Error>>`. Each element
+/// represents either a successfully parsed `Instance` or an error encountered
+/// during parsing.
 fn object_to_instance_list(
     object: &Map<String, Value>,
 ) -> Vec<Result<Instance, Box<dyn std::error::Error>>> {
