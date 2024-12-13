@@ -10,17 +10,64 @@ use serde_json::{Map, Value};
 
 pub use records::Instance;
 
-/// A struct for our compute app service
-/// It has a client field that conforms to the HttpTrait
-pub struct Compute<T: http::HttpTrait> {
-    project: String,
-    client: T,
+/// A trait for fetching the token
+pub trait TokenSource {
+    fn get_token(&self, project: &str) -> Result<String, Box<dyn std::error::Error>>;
 }
 
-impl<T: http::HttpTrait> Compute<T> {
+/// A struct for fetching the token from gcloud
+pub struct GcloudTokenSource;
+
+impl TokenSource for GcloudTokenSource {
+    fn get_token(&self, project: &str) -> Result<String, Box<dyn std::error::Error>> {
+        println!("fetching token for project: {:?}", project);
+        let output = std::process::Command::new("gcloud")
+            .args([
+                "auth",
+                "application-default",
+                "print-access-token",
+                "--project",
+                project,
+            ])
+            .output()?;
+
+        if output.status.success() {
+            let token = String::from_utf8(output.stdout)?.trim().to_string();
+            Ok(token)
+        } else {
+            let err = String::from_utf8(output.stderr)?;
+            Err(err.into())
+        }
+    }
+}
+
+// Mock token source for testing
+pub struct MockTokenSource {
+    mock_token: String,
+}
+
+impl TokenSource for MockTokenSource {
+    fn get_token(&self, _project: &str) -> Result<String, Box<dyn std::error::Error>> {
+        Ok(self.mock_token.clone())
+    }
+}
+
+/// A struct for our compute app service
+/// It has a client field that conforms to the HttpTrait
+pub struct Compute<H: http::HttpTrait, T: TokenSource> {
+    project: String,
+    client: H,
+    token_source: T,
+}
+
+impl<H: http::HttpTrait, T: TokenSource> Compute<H, T> {
     // A builder function for our compute app service
-    pub fn new(project: String, client: T) -> Self {
-        Self { project, client }
+    pub fn new(project: String, client: H, token_source: T) -> Self {
+        Self {
+            project,
+            client,
+            token_source,
+        }
     }
 
     #[allow(dead_code)]
@@ -31,7 +78,7 @@ impl<T: http::HttpTrait> Compute<T> {
         );
 
         println!("url: {:?}", url);
-        let token = get_token(&self.project)?;
+        let token = self.token_source.get_token(&self.project)?;
         let resp = self.client.get(&token, &url)?;
         let zones = resp["items"]
             .as_array()
@@ -55,15 +102,15 @@ impl<T: http::HttpTrait> Compute<T> {
             self.project, encoded_filter
         );
 
-        let token = get_token(&self.project)?;
+        let token = self.token_source.get_token(&self.project)?;
         let resp = self.client.get(&token, &url)?;
         let stuff = resp["items"].as_object().ok_or("No items in response")?;
 
         let mut error = false;
         let mut instance_list = vec![];
-        for (zone, value) in stuff.iter() {
+        for (_, value) in stuff.iter() {
             let object: &Map<String, Value> = value.as_object().unwrap();
-            let instance_result_list = object_to_instance_list(zone, object);
+            let instance_result_list = object_to_instance_list(object);
             for result in instance_result_list {
                 match result {
                     Ok(instance) => {
@@ -90,28 +137,21 @@ impl<T: http::HttpTrait> Compute<T> {
 // Helper functions
 
 fn object_to_instance_list(
-    zone: &String,
     object: &Map<String, Value>,
-) -> Vec<Result<records::Instance, Box<dyn std::error::Error>>> {
-    let mut instances = vec![];
-    for (key, value) in object.iter() {
-        if key != "instances" {
-            continue;
-        }
-        let instance_list = value.as_array().unwrap();
-        println!("zone: {:?}", zone);
-        for instance in instance_list {
-            //println!("instance: {:?}", instance);
-            let result = records::Instance::try_from(instance.clone());
-            instances.push(result);
-        }
-    }
-    instances
+) -> Vec<Result<Instance, Box<dyn std::error::Error>>> {
+    object
+        .get("instances")
+        .and_then(|value| value.as_array())
+        .unwrap_or(&vec![])
+        .iter()
+        .map(|instance| Instance::try_from(instance.clone()))
+        .collect()
 }
 
 /// Run `gcloud auth application-default print-access-token --project=PROJECT` for the given project
 /// and return the token
 #[cfg(any(not(test), feature = "rust-analyzer"))]
+#[allow(dead_code)]
 fn get_token(project: &str) -> Result<String, Box<dyn std::error::Error>> {
     println!("fetching token for project: {:?}", project);
     let output = std::process::Command::new("gcloud")
@@ -159,7 +199,7 @@ mod tests {
         mock_http
             .expect_get()
             .with(
-                predicate::eq(expected_token),
+                predicate::eq(expected_token.clone()),
                 predicate::eq(
                     "https://compute.googleapis.com/compute/v1/projects/test-project/zones",
                 ),
@@ -167,7 +207,13 @@ mod tests {
             .return_once(move |_, _| Ok(json!({"items": [{"name": "zone1"}, {"name": "zone2"}]})));
 
         // Create a Compute instance with the mock HttpTrait
-        let c = Compute::new("test-project".to_string(), mock_http);
+        let c = Compute::new(
+            "test-project".to_string(),
+            mock_http,
+            MockTokenSource {
+                mock_token: expected_token,
+            },
+        );
         let result = c.list_zones();
         let result = result.unwrap();
 
@@ -244,7 +290,13 @@ mod tests {
         });
 
         // Create a Compute instance with the mock HttpTrait
-        let c = Compute::new("test-project".to_string(), mock_http);
+        let c = Compute::new(
+            "test-project".to_string(),
+            mock_http,
+            MockTokenSource {
+                mock_token: "mock_token".to_string(),
+            },
+        );
         let result = c.list_instances("instance");
         let result = result.unwrap();
 

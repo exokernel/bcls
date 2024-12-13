@@ -83,7 +83,12 @@ fn show_instances(
     _long: bool,
     _ip: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let c = bcls::compute::Compute::new(project.to_owned(), bcls::http::Http::default());
+    let token_source = bcls::compute::GcloudTokenSource;
+    let c = bcls::compute::Compute::new(
+        project.to_owned(),
+        bcls::http::Http::default(),
+        token_source,
+    );
     let instances = c.list_instances(pattern);
     match instances {
         Ok(instances) => {
