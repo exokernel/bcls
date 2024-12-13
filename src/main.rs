@@ -83,11 +83,10 @@ fn show_instances(
     _long: bool,
     _ip: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let token_source = bcls::compute::GcloudTokenSource;
     let cc = bcls::compute::ComputeConfig {
         project: project.to_owned(),
         client: bcls::http::Http::default(),
-        token_source,
+        token_source: bcls::compute::GcloudTokenSource,
     };
     let c = bcls::compute::Compute::new(cc);
     let instances = c.list_instances(pattern);
