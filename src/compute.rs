@@ -148,38 +148,6 @@ fn object_to_instance_list(
         .collect()
 }
 
-/// Run `gcloud auth application-default print-access-token --project=PROJECT` for the given project
-/// and return the token
-#[cfg(any(not(test), feature = "rust-analyzer"))]
-#[allow(dead_code)]
-fn get_token(project: &str) -> Result<String, Box<dyn std::error::Error>> {
-    println!("fetching token for project: {:?}", project);
-    let output = std::process::Command::new("gcloud")
-        .args([
-            "auth",
-            "application-default",
-            "print-access-token",
-            "--project",
-            project,
-        ])
-        .output()?;
-
-    if output.status.success() {
-        let token = String::from_utf8(output.stdout)?.trim().to_string();
-        Ok(token)
-    } else {
-        let err = String::from_utf8(output.stderr)?;
-        Err(err.into())
-    }
-}
-
-#[cfg(all(test, not(feature = "rust-analyzer")))]
-fn get_token(project: &str) -> Result<String, Box<dyn std::error::Error>> {
-    println!("fetching token for project: {:?}", project);
-    // Return a mock token for tests
-    Ok("mock_token".to_string())
-}
-
 // Tests
 
 #[cfg(test)]
