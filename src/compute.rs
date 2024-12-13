@@ -101,6 +101,7 @@ fn object_to_instance_list(
         let instance_list = value.as_array().unwrap();
         println!("zone: {:?}", zone);
         for instance in instance_list {
+            //println!("instance: {:?}", instance);
             let result = records::Instance::try_from(instance.clone());
             instances.push(result);
         }
@@ -195,7 +196,10 @@ mod tests {
                                 "machineType": "machine-type1",
                                 "cpuPlatform": "cpu-platform1",
                                 "status": "status1",
-                                "labels": "labels1",
+                                "labels": {
+                                    "key1": "value1",
+                                    "key2": "value2",
+                                },
                             },
                             {
                                 "name": "instance2",
@@ -208,7 +212,10 @@ mod tests {
                                 "machineType": "machine-type2",
                                 "cpuPlatform": "cpu-platform2",
                                 "status": "status2",
-                                "labels": "labels2",
+                                "labels": {
+                                    "key3": "value3",
+                                    "key4": "value4",
+                                },
                             },
                         ],
                     },
@@ -225,7 +232,10 @@ mod tests {
                                 "machineType": "machine-type3",
                                 "cpuPlatform": "cpu-platform3",
                                 "status": "status3",
-                                "labels": "labels3",
+                                "labels": {
+                                    "key5": "value5",
+                                    "key6": "value6",
+                                },
                             },
                         ],
                     },

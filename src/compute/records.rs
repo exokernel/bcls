@@ -1,5 +1,6 @@
 use serde_json::Value as JsonValue;
 use std::error::Error;
+use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
 pub struct Instance {
@@ -9,7 +10,7 @@ pub struct Instance {
     pub machine_type: String,
     pub cpu_platform: String,
     pub status: String,
-    pub labels: String,
+    pub labels: HashMap<String, String>,
 }
 
 impl TryFrom<JsonValue> for Instance {
@@ -49,11 +50,18 @@ impl TryFrom<JsonValue> for Instance {
             .and_then(JsonValue::as_str)
             .ok_or("No status")?
             .to_string();
-        //let labels = json
-        //    .get("labels")
-        //    .and_then(JsonValue::as_str)
-        //    .ok_or("No labels")?
-        //    .to_owned();
+        let labels = json
+            .get("labels")
+            .and_then(JsonValue::as_object)
+            .ok_or("No labels")?
+            .iter()
+            .map(|(k, v)| {
+                (
+                    k.clone(),
+                    v.as_str().unwrap_or("").to_string(),
+                )
+            })
+            .collect::<HashMap<String, String>>();
         Ok(Instance {
             name,
             ip,
@@ -61,7 +69,7 @@ impl TryFrom<JsonValue> for Instance {
             machine_type,
             cpu_platform,
             status,
-            labels: "labels".to_string(),
+            labels: labels,
         })
     }
 }
@@ -69,6 +77,12 @@ impl TryFrom<JsonValue> for Instance {
 impl Instance {
     #[allow(dead_code)]
     pub fn as_string(&self) -> String {
+        let labels_str = self
+            .labels
+            .iter()
+            .map(|(k, v)| format!("{}: {}", k, v))
+            .collect::<Vec<String>>()
+            .join(", ");
         format!(
             "Name: {} IP: {} Zone: {} Machine Type: {} CPU Platform: {} Status: {} Labels: {}",
             self.name,
@@ -77,7 +91,7 @@ impl Instance {
             self.machine_type,
             self.cpu_platform,
             self.status,
-            self.labels
+            labels_str
         )
     }
 }
@@ -102,16 +116,25 @@ mod tests {
             "machineType": "test-machine-type",
             "cpuPlatform": "test-cpu-platform",
             "status": "test-status",
-            "labels": "test-labels"
+            "labels": {
+                "key1": "value1",
+                "key2": "value2"
+            }
         });
 
         let instance = Instance::try_from(json).unwrap();
+
         assert_eq!(instance.name, "test-instance");
         assert_eq!(instance.ip, "127.0.0.1");
         assert_eq!(instance.zone, "test-zone");
         assert_eq!(instance.machine_type, "test-machine-type");
         assert_eq!(instance.cpu_platform, "test-cpu-platform");
         assert_eq!(instance.status, "test-status");
-        assert_eq!(instance.labels, "labels");
+        assert_eq!(instance.labels, {
+            let mut map = HashMap::new();
+            map.insert("key1".to_string(), "value1".to_string());
+            map.insert("key2".to_string(), "value2".to_string());
+            map
+        });
     }
 }

@@ -131,6 +131,12 @@ fn print_instances_table(instances: Vec<bcls::compute::Instance>) {
     ]);
 
     for inst in instances {
+        let labels_str = inst
+            .labels
+            .iter()
+            .map(|(k, v)| format!("{}: {}", k, v))
+            .collect::<Vec<String>>()
+            .join(", ");
         table.add_row(row![
             inst.name,
             inst.ip,
@@ -138,7 +144,7 @@ fn print_instances_table(instances: Vec<bcls::compute::Instance>) {
             inst.machine_type,
             inst.cpu_platform,
             inst.status,
-            inst.labels
+            labels_str
         ]);
     }
 
