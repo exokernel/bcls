@@ -52,34 +52,35 @@ impl TokenSource for MockTokenSource {
     }
 }
 
+/// Configuration for our compute app service
+pub struct ComputeConfig<H: http::HttpTrait, T: TokenSource> {
+    pub project: String,
+    pub client: H,
+    pub token_source: T,
+}
+
 /// A struct for our compute app service
 /// It has a client field that conforms to the HttpTrait
 pub struct Compute<H: http::HttpTrait, T: TokenSource> {
-    project: String,
-    client: H,
-    token_source: T,
+    config: ComputeConfig<H, T>,
 }
 
 impl<H: http::HttpTrait, T: TokenSource> Compute<H, T> {
     // A builder function for our compute app service
-    pub fn new(project: String, client: H, token_source: T) -> Self {
-        Self {
-            project,
-            client,
-            token_source,
-        }
+    pub fn new(config: ComputeConfig<H, T>) -> Self {
+        Self { config }
     }
 
     #[allow(dead_code)]
     pub fn list_zones(&self) -> Result<Vec<String>, Box<dyn std::error::Error>> {
         let url = format!(
             "https://compute.googleapis.com/compute/v1/projects/{}/zones",
-            self.project
+            self.config.project
         );
 
         println!("url: {:?}", url);
-        let token = self.token_source.get_token(&self.project)?;
-        let resp = self.client.get(&token, &url)?;
+        let token = self.config.token_source.get_token(&self.config.project)?;
+        let resp = self.config.client.get(&token, &url)?;
         let zones = resp["items"]
             .as_array()
             .ok_or("No items in response")?
@@ -99,11 +100,11 @@ impl<H: http::HttpTrait, T: TokenSource> Compute<H, T> {
         let encoded_filter = urlencoding::encode(&filter);
         let url = format!(
             "https://compute.googleapis.com/compute/v1/projects/{}/aggregated/instances?filter={}",
-            self.project, encoded_filter
+            self.config.project, encoded_filter
         );
 
-        let token = self.token_source.get_token(&self.project)?;
-        let resp = self.client.get(&token, &url)?;
+        let token = self.config.token_source.get_token(&self.config.project)?;
+        let resp = self.config.client.get(&token, &url)?;
         let stuff = resp["items"].as_object().ok_or("No items in response")?;
 
         let mut error = false;
@@ -175,13 +176,14 @@ mod tests {
             .return_once(move |_, _| Ok(json!({"items": [{"name": "zone1"}, {"name": "zone2"}]})));
 
         // Create a Compute instance with the mock HttpTrait
-        let c = Compute::new(
-            "test-project".to_string(),
-            mock_http,
-            MockTokenSource {
+        let config = ComputeConfig {
+            project: "test-project".to_string(),
+            client: mock_http,
+            token_source: MockTokenSource {
                 mock_token: expected_token,
             },
-        );
+        };
+        let c = Compute::new(config);
         let result = c.list_zones();
         let result = result.unwrap();
 
@@ -258,13 +260,14 @@ mod tests {
         });
 
         // Create a Compute instance with the mock HttpTrait
-        let c = Compute::new(
-            "test-project".to_string(),
-            mock_http,
-            MockTokenSource {
+        let config = ComputeConfig {
+            project: "test-project".to_string(),
+            client: mock_http,
+            token_source: MockTokenSource {
                 mock_token: "mock_token".to_string(),
             },
-        );
+        };
+        let c = Compute::new(config);
         let result = c.list_instances("instance");
         let result = result.unwrap();
 
