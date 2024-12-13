@@ -133,7 +133,7 @@ fn get_token(project: &str) -> Result<String, Box<dyn std::error::Error>> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, not(feature = "rust-analyzer")))]
 fn get_token(project: &str) -> Result<String, Box<dyn std::error::Error>> {
     println!("fetching token for project: {:?}", project);
     // Return a mock token for tests
