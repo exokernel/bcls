@@ -11,6 +11,10 @@ args = ["fmt", "--", "--emit=files"]
 command = "cargo"
 args = ["clean"]
 
+[tasks.doc]
+command = "cargo"
+args = ["doc", "--open", "--no-deps"]
+
 #[tasks.build]
 #command = "cargo"
 #args = ["build"]
