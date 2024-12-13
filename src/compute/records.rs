@@ -1,6 +1,6 @@
 use serde_json::Value as JsonValue;
-use std::error::Error;
 use std::collections::HashMap;
+use std::error::Error;
 
 #[derive(Debug, Clone)]
 pub struct Instance {
@@ -34,11 +34,17 @@ impl TryFrom<JsonValue> for Instance {
             .get("zone")
             .and_then(JsonValue::as_str)
             .ok_or("No zone")?
+            .split('/')
+            .last()
+            .ok_or("Invalid zone format")?
             .to_string();
         let machine_type = json
             .get("machineType")
             .and_then(JsonValue::as_str)
             .ok_or("No machineType")?
+            .split('/')
+            .last()
+            .ok_or("Invalid machineType format")?
             .to_string();
         let cpu_platform = json
             .get("cpuPlatform")
@@ -55,12 +61,7 @@ impl TryFrom<JsonValue> for Instance {
             .and_then(JsonValue::as_object)
             .ok_or("No labels")?
             .iter()
-            .map(|(k, v)| {
-                (
-                    k.clone(),
-                    v.as_str().unwrap_or("").to_string(),
-                )
-            })
+            .map(|(k, v)| (k.clone(), v.as_str().unwrap_or("").to_string()))
             .collect::<HashMap<String, String>>();
         Ok(Instance {
             name,
@@ -69,7 +70,7 @@ impl TryFrom<JsonValue> for Instance {
             machine_type,
             cpu_platform,
             status,
-            labels: labels,
+            labels,
         })
     }
 }

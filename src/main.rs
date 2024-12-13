@@ -36,8 +36,6 @@ pub struct EnvArgs {
     #[arg(short, long, conflicts_with = "long")]
     ip: bool,
 
-    /// Fields
-
     /// Search pattern to match against instance names. E.g. "^store-lb"
     pattern: String,
 }
