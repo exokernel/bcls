@@ -15,15 +15,9 @@ args = ["clean"]
 command = "cargo"
 args = ["doc", "--open", "--no-deps"]
 
-#[tasks.build]
-#command = "cargo"
-#args = ["build"]
-#dependencies = ["clean"]
-
 [tasks.test]
 command = "cargo"
 args = ["test"]
-#dependencies = ["clean"]
 
 [tasks.check-all]
 dependencies = [

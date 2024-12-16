@@ -83,6 +83,103 @@ impl TokenSource for MockTokenSource {
     }
 }
 
+/// An iterator that handles paginating through all the instances in a project.
+/// Each call to `next` fetches a page of instances from the API as vectors of `Instance` structs.
+struct InstancesPageIterator<'a, H: http::HttpTrait, T: TokenSource> {
+    config: &'a ComputeConfig<H, T>,
+    page_token: Option<String>,
+    auth_token: String,
+    finished: bool,
+}
+
+/// Implementation of the `InstanceIterator` struct.
+impl<'a, H: http::HttpTrait, T: TokenSource> InstancesPageIterator<'a, H, T> {
+    fn new(config: &'a ComputeConfig<H, T>, auth_token: String) -> Self {
+        Self {
+            config,
+            page_token: None,
+            auth_token,
+            finished: false,
+        }
+    }
+}
+
+/// Implementation of the `Iterator` trait for `InstanceIterator`.
+impl<H: http::HttpTrait, T: TokenSource> Iterator for InstancesPageIterator<'_, H, T> {
+    type Item = Result<Vec<records::Instance>, Box<dyn std::error::Error>>;
+
+    /// Fetches the next page of instances from the API.
+    /// If there are no more pages, returns `None`.
+    /// If an error occurs, returns an error result wrapped in `Some` and terminates the iteration by setting `finished`
+    /// to `true`.
+    /// If the next page is successfully fetched, returns a vector of instances wrapped in `Some`.
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.finished {
+            return None;
+        }
+
+        // Construct the URL
+        let url = match &self.page_token {
+            Some(token) => format!(
+                "https://compute.googleapis.com/compute/v1/projects/{}/aggregated/instances?pageToken={}",
+                self.config.project, token
+            ),
+            None => format!(
+                "https://compute.googleapis.com/compute/v1/projects/{}/aggregated/instances",
+                self.config.project
+            ),
+        };
+
+        // Make the HTTP request
+        let resp = match self.config.client.get(&self.auth_token, &url) {
+            Ok(resp) => resp,
+            Err(e) => return Some(Err(e)),
+        };
+
+        // Parse the response
+        let stuff = match resp["items"].as_object() {
+            Some(stuff) => stuff,
+            None => return Some(Err("No items in response".into())),
+        };
+
+        // Convert the response to a list of instances
+        let mut error = false;
+        let mut instance_list = vec![];
+        for (_, value) in stuff.iter() {
+            let object: &Map<String, Value> = value.as_object().unwrap();
+            let instance_result_list = object_to_instance_list(object);
+            for result in instance_result_list {
+                match result {
+                    Ok(instance) => {
+                        instance_list.push(instance);
+                    }
+                    Err(e) => {
+                        println!("error: {:?}", e);
+                        error = true;
+                    }
+                };
+            }
+        }
+
+        // Check for errors
+        if error {
+            self.finished = true;
+            return Some(Err("Error parsing instances".into()));
+        }
+
+        // Check for a next page token
+        self.page_token = match resp["nextPageToken"].as_str() {
+            Some(token) => Some(token.to_string()),
+            None => {
+                self.finished = true;
+                None
+            }
+        };
+
+        Some(Ok(instance_list))
+    }
+}
+
 /// Configuration for the `Compute` service.
 pub struct ComputeConfig<H: http::HttpTrait, T: TokenSource> {
     /// The Google Cloud project ID.
@@ -134,52 +231,25 @@ impl<H: http::HttpTrait, T: TokenSource> Compute<H, T> {
         Ok(zones)
     }
 
-    /// Lists instances in the specified project, filtered by name.
-    ///
-    /// # Arguments
-    ///
-    /// * `instance_name` - A regular expression pattern to match against instance names.
-    ///
+    /// Lists instances in the specified project
     /// # Returns
     ///
     /// * `Ok(Vec<Instance>)` - A vector of `Instance` structs representing the matching instances.
     /// * `Err(Box<dyn std::error::Error>)` - An error if the API call fails or if there's an
     ///   issue parsing the response.
-    pub fn list_instances(
-        &self,
-        _instance_name: &str,
-    ) -> Result<Vec<records::Instance>, Box<dyn std::error::Error>> {
-        let url = format!(
-            "https://compute.googleapis.com/compute/v1/projects/{}/aggregated/instances",
-            self.config.project
-        );
+    pub fn list_all_instances(&self) -> Result<Vec<records::Instance>, Box<dyn std::error::Error>> {
+        // Fetch the auth token
+        let auth_token = self.config.token_source.get_token(&self.config.project)?;
 
-        let token = self.config.token_source.get_token(&self.config.project)?;
-        let resp = self.config.client.get(&token, &url)?;
-        let stuff = resp["items"].as_object().ok_or("No items in response")?;
+        // Create an iterator over the instances. This will handle pagination.
+        let iter = InstancesPageIterator::new(&self.config, auth_token);
 
-        let mut error = false;
-        let mut instance_list = vec![];
-        for (_, value) in stuff.iter() {
-            let object: &Map<String, Value> = value.as_object().unwrap();
-            let instance_result_list = object_to_instance_list(object);
-            for result in instance_result_list {
-                match result {
-                    Ok(instance) => {
-                        instance_list.push(instance);
-                    }
-                    Err(e) => {
-                        println!("error: {:?}", e);
-                        error = true;
-                    }
-                };
-            }
-        }
+        // Collect the instances from the iterator returning either a vector of vectors of instances
+        // or an error if one occurred during the iteration.
+        let instances = iter.collect::<Result<Vec<_>, _>>()?;
 
-        match error {
-            true => Err("Error parsing instances".into()), // More concise error message
-            false => Ok(instance_list),
-        }
+        // Flatten the vector of vectors into a single vector iterator and collect it into a vector of instances.
+        Ok(instances.into_iter().flatten().collect())
     }
 }
 
@@ -330,7 +400,7 @@ mod tests {
             },
         };
         let c = Compute::new(config);
-        let result = c.list_instances("instance");
+        let result = c.list_all_instances();
         let result = result.unwrap();
 
         // Assert that the function returned the expected result

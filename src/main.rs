@@ -79,7 +79,7 @@ fn handle_command(args: EnvArgs, project: &str) -> Result<(), Box<dyn std::error
 
 fn show_instances(
     project: &str,
-    pattern: &str,
+    _pattern: &str,
     _long: bool,
     _ip: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -89,7 +89,7 @@ fn show_instances(
         token_source: bcls::compute::GcloudTokenSource,
     };
     let c = bcls::compute::Compute::new(cc);
-    let instances = c.list_instances(pattern);
+    let instances = c.list_all_instances();
     match instances {
         Ok(instances) => {
             print_instances_table(instances);
