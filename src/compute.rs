@@ -147,13 +147,11 @@ impl<H: http::HttpTrait, T: TokenSource> Compute<H, T> {
     ///   issue parsing the response.
     pub fn list_instances(
         &self,
-        instance_name: &str,
+        _instance_name: &str,
     ) -> Result<Vec<records::Instance>, Box<dyn std::error::Error>> {
-        let filter = format!("(name eq .*{}.*)", instance_name);
-        let encoded_filter = urlencoding::encode(&filter);
         let url = format!(
-            "https://compute.googleapis.com/compute/v1/projects/{}/aggregated/instances?filter={}",
-            self.config.project, encoded_filter
+            "https://compute.googleapis.com/compute/v1/projects/{}/aggregated/instances",
+            self.config.project
         );
 
         let token = self.config.token_source.get_token(&self.config.project)?;
