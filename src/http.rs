@@ -7,7 +7,7 @@ use serde_json::Value as JsonValue;
 /// A trait defining the interface for an HTTP client.
 /// This trait allows for mocking the HTTP client in tests.
 #[cfg_attr(test, mockall::automock)]
-pub trait HttpTrait {
+pub trait HttpClient {
     /// Sends a GET request to the specified URL with the given bearer token.
     ///
     /// # Arguments
@@ -45,7 +45,7 @@ impl Http {
 }
 
 // Implement the HttpTrait for our Http struct
-impl HttpTrait for Http {
+impl HttpClient for Http {
     /// Sends a GET request using `reqwest`.
     ///
     /// This implementation uses the underlying `reqwest` client to send a GET request

@@ -85,7 +85,7 @@ impl TokenSource for MockTokenSource {
 
 /// An iterator that handles paginating through all the instances in a project.
 /// Each call to `next` fetches a page of instances from the API as vectors of `Instance` structs.
-struct InstancesPageIterator<'a, H: http::HttpTrait, T: TokenSource> {
+struct InstancesPageIterator<'a, H: http::HttpClient, T: TokenSource> {
     config: &'a ComputeConfig<H, T>,
     page_token: Option<String>,
     auth_token: String,
@@ -93,7 +93,7 @@ struct InstancesPageIterator<'a, H: http::HttpTrait, T: TokenSource> {
 }
 
 /// Implementation of the `InstanceIterator` struct.
-impl<'a, H: http::HttpTrait, T: TokenSource> InstancesPageIterator<'a, H, T> {
+impl<'a, H: http::HttpClient, T: TokenSource> InstancesPageIterator<'a, H, T> {
     fn new(config: &'a ComputeConfig<H, T>, auth_token: String) -> Self {
         Self {
             config,
@@ -105,7 +105,7 @@ impl<'a, H: http::HttpTrait, T: TokenSource> InstancesPageIterator<'a, H, T> {
 }
 
 /// Implementation of the `Iterator` trait for `InstanceIterator`.
-impl<H: http::HttpTrait, T: TokenSource> Iterator for InstancesPageIterator<'_, H, T> {
+impl<H: http::HttpClient, T: TokenSource> Iterator for InstancesPageIterator<'_, H, T> {
     type Item = Result<Vec<records::Instance>, Box<dyn std::error::Error>>;
 
     /// Fetches the next page of instances from the API.
@@ -186,7 +186,7 @@ impl<H: http::HttpTrait, T: TokenSource> Iterator for InstancesPageIterator<'_, 
 }
 
 /// Configuration for the `Compute` service.
-pub struct ComputeConfig<H: http::HttpTrait, T: TokenSource> {
+pub struct ComputeConfig<H: http::HttpClient, T: TokenSource> {
     /// The Google Cloud project ID.
     pub project: String,
     /// The HTTP client implementation.
@@ -196,12 +196,12 @@ pub struct ComputeConfig<H: http::HttpTrait, T: TokenSource> {
 }
 
 /// Provides an interface for interacting with the Google Compute Engine API.
-pub struct Compute<H: http::HttpTrait, T: TokenSource> {
+pub struct Compute<H: http::HttpClient, T: TokenSource> {
     /// The configuration for the `Compute` service.
     config: ComputeConfig<H, T>,
 }
 
-impl<H: http::HttpTrait, T: TokenSource> Compute<H, T> {
+impl<H: http::HttpClient, T: TokenSource> Compute<H, T> {
     /// Creates a new `Compute` instance.
     ///
     /// # Arguments
@@ -291,13 +291,13 @@ fn object_to_instance_list(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::http::MockHttpTrait;
+    use crate::http::MockHttpClient;
     use mockall::predicate;
     use serde_json::json;
 
     #[test]
     fn test_list_zones() {
-        let mut mock_http = MockHttpTrait::new();
+        let mut mock_http = MockHttpClient::new();
 
         // Set up expectations
         let expected_token = "mock_token".to_string();
@@ -330,7 +330,7 @@ mod tests {
 
     #[test]
     fn test_list_instances() {
-        let mut mock_http = MockHttpTrait::new();
+        let mut mock_http = MockHttpClient::new();
 
         // Set up expectations
         mock_http.expect_get().return_once(move |_, _| {
