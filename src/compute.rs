@@ -134,13 +134,19 @@ impl<H: http::HttpClient, T: TokenSource> Iterator for InstancesPageIterator<'_,
         // Make the HTTP request
         let resp = match self.config.client.get(&self.auth_token, &url) {
             Ok(resp) => resp,
-            Err(e) => return Some(Err(e)),
+            Err(e) => {
+                self.finished = true;
+                return Some(Err(e));
+            }
         };
 
         // Parse the response
         let json_response = match resp["items"].as_object() {
             Some(instances_json) => instances_json,
-            None => return Some(Err("No items in response".into())),
+            None => {
+                self.finished = true;
+                return Some(Err("No items in response".into()));
+            }
         };
 
         // Convert the json response to a list of instance structs
