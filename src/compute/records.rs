@@ -21,7 +21,7 @@ pub struct Instance {
     /// The status of the instance.
     pub status: String,
     /// The labels associated with the instance.
-    pub labels: HashMap<String, String>,
+    pub labels: Option<HashMap<String, String>>,
 }
 
 impl TryFrom<JsonValue> for Instance {
@@ -83,11 +83,14 @@ impl TryFrom<JsonValue> for Instance {
             .to_string();
         let labels = json
             .get("labels")
-            .and_then(JsonValue::as_object)
-            .ok_or("Missing or invalid 'labels' field")?
-            .iter()
-            .map(|(k, v)| (k.clone(), v.as_str().unwrap_or("").to_string()))
-            .collect::<HashMap<String, String>>();
+            .and_then(JsonValue::as_object) // Convert to object or None
+            // Convert the labels (which is Map<String, &Value> to a HashMap of String key-value pairs if as_object is
+            // Some otherwise, if map was called on None it returns None
+            .map(|obj| {
+                obj.iter()
+                    .map(|(k, v)| (k.clone(), v.as_str().unwrap_or("").to_string()))
+                    .collect::<HashMap<String, String>>()
+            });
         Ok(Instance {
             name,
             ip,
@@ -112,12 +115,14 @@ impl Instance {
     /// * `String` - The formatted string representation of the `Instance`.
     #[allow(dead_code)]
     pub fn as_string(&self) -> String {
-        let labels_str = self
-            .labels
-            .iter()
-            .map(|(k, v)| format!("{}: {}", k, v))
-            .collect::<Vec<String>>()
-            .join(", ");
+        let labels_str = match &self.labels {
+            Some(labels) => labels
+                .iter()
+                .map(|(k, v)| format!("{}: {}", k, v))
+                .collect::<Vec<String>>()
+                .join(", "),
+            None => "None".to_string(),
+        };
         format!(
             "Name: {} IP: {} Zone: {} Machine Type: {} CPU Platform: {} Status: {} Labels: {}",
             self.name,
@@ -171,7 +176,7 @@ mod tests {
             let mut map = HashMap::new();
             map.insert("key1".to_string(), "value1".to_string());
             map.insert("key2".to_string(), "value2".to_string());
-            map
+            Some(map)
         });
     }
 }

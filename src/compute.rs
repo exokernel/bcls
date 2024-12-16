@@ -173,13 +173,13 @@ impl<H: http::HttpClient, T: TokenSource> Iterator for InstancesPageIterator<'_,
         }
 
         // Check for a next page token
-        self.page_token = match resp["nextPageToken"].as_str() {
-            Some(token) => Some(token.to_string()),
-            None => {
+        self.page_token = resp["nextPageToken"]
+            .as_str()
+            .map(|token| token.to_string())
+            .or_else(|| {
                 self.finished = true;
                 None
-            }
-        };
+            });
 
         Some(Ok(instance_list))
     }
