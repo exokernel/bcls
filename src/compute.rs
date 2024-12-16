@@ -119,6 +119,7 @@ impl<H: http::HttpTrait, T: TokenSource> Iterator for InstancesPageIterator<'_, 
         }
 
         // Construct the URL
+        // <https://cloud.google.com/compute/docs/reference/rest/v1/instances/aggregatedList#http-request>
         let url = match &self.page_token {
             Some(token) => format!(
                 "https://compute.googleapis.com/compute/v1/projects/{}/aggregated/instances?pageToken={}",
@@ -137,29 +138,33 @@ impl<H: http::HttpTrait, T: TokenSource> Iterator for InstancesPageIterator<'_, 
         };
 
         // Parse the response
-        let stuff = match resp["items"].as_object() {
-            Some(stuff) => stuff,
+        let json_response = match resp["items"].as_object() {
+            Some(instances_json) => instances_json,
             None => return Some(Err("No items in response".into())),
         };
 
-        // Convert the response to a list of instances
+        // Convert the json response to a list of instance structs
         let mut error = false;
-        let mut instance_list = vec![];
-        for (_, value) in stuff.iter() {
-            let object: &Map<String, Value> = value.as_object().unwrap();
-            let instance_result_list = object_to_instance_list(object);
-            for result in instance_result_list {
-                match result {
-                    Ok(instance) => {
-                        instance_list.push(instance);
-                    }
-                    Err(e) => {
-                        println!("error: {:?}", e);
-                        error = true;
-                    }
-                };
-            }
-        }
+        let instance_list = json_response
+            .iter() // Iterate over the zones
+            // Convert the instances in each zone to a list of instances
+            .flat_map(|(_, value)| {
+                let object = value
+                    .as_object()
+                    .expect("Expected JSON object but got something else");
+                object_to_instance_list(object)
+            })
+            // Filter out any errors that occurred during parsing
+            // Print any errors and set the error flag to true replace the error with None which will filter it out
+            .filter_map(|result| match result {
+                Ok(instance) => Some(instance),
+                Err(e) => {
+                    println!("error: {:?}", e);
+                    error = true;
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
 
         // Check for errors
         if error {
