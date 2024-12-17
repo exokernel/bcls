@@ -22,6 +22,10 @@ pub struct Instance {
     pub status: String,
     /// The labels associated with the instance.
     pub labels: Option<HashMap<String, String>>,
+    /// The region the instance is running in.
+    pub region: String,
+    /// The cell the instance is running in.
+    pub cell: Option<String>,
 }
 
 impl TryFrom<JsonValue> for Instance {
@@ -91,6 +95,20 @@ impl TryFrom<JsonValue> for Instance {
                     .map(|(k, v)| (k.clone(), v.as_str().unwrap_or("").to_string()))
                     .collect::<HashMap<String, String>>()
             });
+        // Extract the cell from the labels if it exists
+        let cell = labels
+            .as_ref()
+            .and_then(|labels| labels.get("cell"))
+            .map(|cell| cell.to_string());
+
+        // Extract the region from the zone
+        let region = zone
+            .split('-')
+            .take(2) // TODO: can we assume that the region is always the first two parts of the zone?
+            .collect::<Vec<&str>>()
+            .join("-")
+            .to_string();
+
         Ok(Instance {
             name,
             ip,
@@ -99,6 +117,8 @@ impl TryFrom<JsonValue> for Instance {
             cpu_platform,
             status,
             labels,
+            region,
+            cell,
         })
     }
 }
@@ -152,13 +172,13 @@ mod tests {
                     "networkIP": "127.0.0.1"
                 }
             ],
-            "zone": "projects/12345/zones/test-zone", // Full zone path
+            "zone": "projects/12345/zones/test-region-foo", // Full zone path
             "machineType": "projects/12345/machineTypes/test-machine-type", // Full machine type path
             "cpuPlatform": "test-cpu-platform",
             "status": "test-status",
             "labels": {
                 "key1": "value1",
-                "key2": "value2"
+                "cell": "int-test-cell",
             }
         });
 
@@ -168,15 +188,17 @@ mod tests {
         // Assertions to check if the Instance fields are correctly populated.
         assert_eq!(instance.name, "test-instance");
         assert_eq!(instance.ip, "127.0.0.1");
-        assert_eq!(instance.zone, "test-zone"); // Extracted zone
+        assert_eq!(instance.zone, "test-region-foo"); // Extracted zone
         assert_eq!(instance.machine_type, "test-machine-type"); // Extracted machine type
         assert_eq!(instance.cpu_platform, "test-cpu-platform");
         assert_eq!(instance.status, "test-status");
         assert_eq!(instance.labels, {
             let mut map = HashMap::new();
             map.insert("key1".to_string(), "value1".to_string());
-            map.insert("key2".to_string(), "value2".to_string());
+            map.insert("cell".to_string(), "int-test-cell".to_string());
             Some(map)
         });
+        assert_eq!(instance.region, "test-region");
+        assert_eq!(instance.cell, Some("int-test-cell".to_string()));
     }
 }
